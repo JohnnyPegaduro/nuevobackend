@@ -1,33 +1,120 @@
 const express = require("express");
 const app = express();
+const morgan = require("morgan");
+
+//? Contenedor con persistencia en ARRAY con 2 productos agregados para consultas y pruebas
+
+const arrayProducts = [{
+        "title": "gorra",
+        "price": 99989,
+        "thumbnail": "gorra.negra",
+        "id": 1
+    },
+    {
+        "title": "remera",
+        "price": 8900,
+        "thumbnail": "remera.negra",
+        "id": 2
+    }
+];
 const Container = require("./container");
-const contenedor = new Container("./products.json");
+const contenedor = new Container(arrayProducts);
+
+console.log(arrayProducts);
+
+//////////////////////////////////!
 
 //? Settings
 
-app.set("port", 8080); //*Configuración puerto
+app.set("port", 8080); //* Configuración puerto
+app.set("json spaces", 2); //* JSON formatter
+
+//? Middlewares
+
+//? completedFields revisará si el input del formulario o la query recibe todos los parámetros solicitados // Método POST
+
+const completedFields = (req, res, next) => {
+    const {
+        title,
+        price,
+        thumbnail
+    } = req.body;
+    title && price && thumbnail ?
+        next() :
+        res.status(300).send({
+            message: "Debe completar todos los campos"
+        });
+};
+
+//////////////////////////////////!
+
+app.use(express.urlencoded({
+    extended: false
+}));
+app.use(express.json());
+app.use(morgan("dev"));
+app.use("/", express.static(__dirname + "/public"));
 
 //? Routes
 
-app.get("/", (req, res) => {
+//* DEVUELVE TODOS LOS PRODUCTOS
+
+app.get("/api/products", async (req, res) => {
+    const data = await contenedor.getAll();
+    res.status(200).json(data);
+});
+
+//* DEVUELVE UN PRODUCTO SEGÚN SU ID
+
+app.get("/api/products/:id", async (req, res) => {
+    const data = await contenedor.getById(req.params.id);
+
+    //! Si el id generado no coincide con ningún producto, devuelve null; de lo contrario, envía la información solicitada
+    data
+        ?
+        res.status(200).json(data) :
+        res.status(404).json({
+            error: "Producto no encontrado"
+        });
+});
+
+//* RECIBE Y AGREGA UN PRODUCTO, Y LO DEVUELVE CON SU ID ASIGNADO
+
+app.post("/api/products", completedFields, async (req, res) => {
+    const {
+        title,
+        price,
+        thumbnail
+    } = req.body;
+    const data = await contenedor.save({
+        title,
+        price,
+        thumbnail
+    });
+    data == null ?
+        res.status(500).json({
+            message: ` [[${title}]] ya existe en el archivo`
+        }) :
+        res.status(200).json(data);
+});
+
+app.put("/api/products/:id", (req, res) => {
     res.send("<h1 style='color:blue'>HOLA SERVIDOR</h1>");
 });
 
-app.get("/products", async (req, res) => {
-    let data = await contenedor.getAll();
-    res.send(data);
+app.delete("/api/products/:id", async (req, res) => {
+    const data = await contenedor.deleteById(req.params.id);
+    data
+        ?
+        res
+        .status(200)
+        .send({
+            message: `Se ha eliminado el producto ${data.title}`
+        }) :
+        res.status(404).send({
+            message: "No se ha encontrado el producto"
+        });
 });
-
-app.get("/randomProduct", async (req, res) => {
-    //! Números aleatorios del 1 al 10
-    let randomNum = Math.floor(Math.random() * 9 + 1);
-    let data = await contenedor.getById(randomNum);
-    //! Si el id generado no coincide con ningún producto, devuelve null; de lo contrario, envía la información solicitada
-    data === null ?
-        res.send(`<h4>ID:${randomNum} >> [[ERROR]] No se ha encontrado el producto</h4>`) :
-        res.json(data);
-});
-
 
 //? Servidor iniciado
 
