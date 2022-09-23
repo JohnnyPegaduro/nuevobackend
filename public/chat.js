@@ -1,5 +1,3 @@
-const socket = io();
-
 //!  DOM ELEMENTS
 
 let message = document.getElementById("message");
@@ -8,50 +6,45 @@ let btn = document.getElementById("send");
 let output = document.getElementById("output");
 let actions = document.getElementById("actions");
 
+//! Al cliquear en SEND, se enviará un mensaje al servidor con el evento chat:message, y luego se limpiará el input message
+
 btn.addEventListener("click", () => {
-    //TODO Arreglar CHAT
     socket.emit("chat:message", {
         username: username.value,
         message: message.value,
+        date: new Date().toLocaleString()
     });
+    message.value = " ";
+    return false;
 });
 
-function render(data) {
-
-    const html = data
-        .map((msg) => {
-            `<p>
-    <strong class="message-user">${
-    msg.username
-    } <span class="message-date">[ ${new Date().toLocaleString()} ]</span></strong>: <span class="message-txt">${
-        msg.message
-    }</span>
-    </p>`;
-        })
-        .join(" ");
-
-    output.innerHTML = html;
-} //ToDO Function debe implementarse???
+//! El input message escucha al evento keypress(escribiendo) para crear el evento chat:typing
 
 message.addEventListener("keypress", () => {
     socket.emit("chat:typing", username.value);
 });
 
-socket.on("all:messages", (data) => {
-    render(data);
-}); //TODO Traer todo el array de mensajes
+//! Luego de enviar mensaje por el chat, se limpiará el actions (muestra el evento chat:typing) y se renderizará el chat, obteniendo por data un Array de mensajes con el evento chat:messages
 
-socket.on("chat:message", (data) => {
+socket.on("chat:messages", (data) => {
     actions.innerHTML = " ";
-    output.innerHTML += `<p>
+    output.innerHTML = data
+        .map(
+            (user) =>
+            `<p>
     <strong class="message-user">${
-    data.username
-    } <span class="message-date">[ ${new Date().toLocaleString()} ]</span></strong>: <span class="message-txt">${
-    data.message
-    }</span>
-    </p>`;
+      user.username
+    } <span class="message-date">[ ${user.date} ]</span></strong>: <span class="message-txt">${
+          user.message
+        }</span>
+    </p>`
+        )
+        .join(" ");
+    return false
 });
 
+//! "Está escribiendo..."
+
 socket.on("chat:typing", (data) => {
-    actions.innerHTML = `<p></em>${data} is typing a message </p>`;
+    actions.innerHTML = `<p></em>${data} Está escribiendo... </p>`;
 });

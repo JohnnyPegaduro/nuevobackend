@@ -4,7 +4,7 @@ url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&family=Roboto:wgh
 .form {
     font-family: "Poppins", sans-serif;
     background-color: green;
-    margin: auto;
+    margin: 30px auto;
     width: 90%;
     max-width: 400px;
     padding: 4.5em 3em;
@@ -100,6 +100,13 @@ url("https://fonts.googleapis.com/css2?family=Poppins:wght@300&family=Roboto:wgh
             padding: 0.8em 0;
             border: none;
             border-radius: 0.5em;
+            cursor: pointer;
+            transition: .3s all;
+
+            &:hover {
+                background-color: blue;
+                color: yellow;
+            }
         }
     }
 }
